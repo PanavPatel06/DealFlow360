@@ -1,0 +1,21 @@
+# Group owned. Postgres only: nothing schedules work yet, so Redis and BullMQ
+# land here the hour someone actually needs a queue.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dealflow
+      POSTGRES_PASSWORD: dealflow
+      POSTGRES_DB: dealflow360
+    ports:
+      - '5432:5432'
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U dealflow -d dealflow360']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  dbdata:

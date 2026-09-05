@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "rootDir": "src", "outDir": "dist" },
-  "references": [{ "path": "../../packages/contracts" }],
+  "compilerOptions": { "rootDir": "src", "outDir": "dist", "baseUrl": "../..", "strictPropertyInitialization": false },
   "include": ["src/**/*"],
-  "exclude": ["**/*.spec.ts"]
+  "exclude": ["src/**/*.spec.ts"],
+  "references": [{ "path": "../../packages/contracts" }]
 }

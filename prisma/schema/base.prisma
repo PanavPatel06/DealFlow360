@@ -62,3 +62,12 @@ enum ReservationStatus {
   SHIPPED
   RELEASED
 }
+
+// Added by B1 with the orders table. Additive only, mirrored in
+// packages/contracts/src/enums.ts. Flag at the next integration checkpoint.
+enum OrderStatus {
+  CONFIRMED
+  FULFILLING
+  COMPLETED
+  CANCELLED
+}

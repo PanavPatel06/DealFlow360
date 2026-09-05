@@ -1,0 +1,163 @@
+// B1 owned: users, roles, customers, customer_tiers, quotations,
+// quotation_lines, orders, order_lines.
+// Cross-domain references are plain ids wherever the other module never joins
+// back (integration rule 6). Where B3 declared its half of a relation
+// (Product.lines, Fulfillment.order, Invoice.order, Subscription.order,
+// Negotiation.quotation), Prisma requires the opposite field, so those are
+// declared here at integration. No column changes, only relation fields.
+
+model Role {
+  id    String @id @default(cuid())
+  name  String @unique
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  roleId       String
+  role         Role     @relation(fields: [roleId], references: [id])
+  /// set for the CUSTOMER role only, and it scopes every portal read
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedCustomers Customer[]  @relation("accountOwner")
+  ownedQuotes    Quotation[] @relation("quoteOwner")
+
+  @@map("users")
+}
+
+model CustomerTier {
+  id             String     @id @default(cuid())
+  code           String     @unique
+  name           String
+  /// display only. Every ceiling that decides an outcome lives in discount_policies (invariant 9).
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  customers      Customer[]
+
+  @@map("customer_tiers")
+}
+
+model Customer {
+  id           String       @id @default(cuid())
+  code         String       @unique
+  name         String
+  email        String?
+  currency     String       @db.Char(3)
+  tierId       String
+  tier         CustomerTier @relation(fields: [tierId], references: [id])
+  ownerUserId  String?
+  owner        User?        @relation("accountOwner", fields: [ownerUserId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  quotations Quotation[]
+  orders     Order[]
+  users      User[]
+
+  @@index([tierId])
+  @@map("customers")
+}
+
+model Quotation {
+  id             String      @id @default(cuid())
+  code           String      @unique
+  customerId     String
+  customer       Customer    @relation(fields: [customerId], references: [id])
+  ownerUserId    String?
+  owner          User?       @relation("quoteOwner", fields: [ownerUserId], references: [id])
+  status         QuoteStatus @default(DRAFT)
+  currency       String      @db.Char(3)
+  subtotalMinor  Int         @default(0)
+  discountMinor  Int         @default(0)
+  taxMinor       Int         @default(0)
+  totalMinor     Int         @default(0)
+  marginBps      Int         @default(0)
+  validUntil     DateTime?
+  lastActivityAt DateTime    @default(now())
+  /// the customer's only handle on this quote, and the portal's scope key
+  portalToken    String?     @unique
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  lines       QuotationLine[]
+  orders      Order[]
+  negotiation Negotiation?
+
+  @@index([customerId])
+  @@index([status])
+  @@map("quotations")
+}
+
+model QuotationLine {
+  id             String    @id @default(cuid())
+  quotationId    String
+  quotation      Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product   @relation(fields: [productId], references: [id])
+  description    String
+  qty            Int
+  unitPriceMinor Int
+  discountBps    Int       @default(0)
+  lineTotalMinor Int       @default(0)
+  costMinor      Int       @default(0)
+  lineType       LineType  @default(ONE_TIME)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([quotationId])
+  @@map("quotation_lines")
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  code          String      @unique
+  quotationId   String
+  quotation     Quotation   @relation(fields: [quotationId], references: [id])
+  customerId    String
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  status        OrderStatus @default(CONFIRMED)
+  currency      String      @db.Char(3)
+  subtotalMinor Int
+  discountMinor Int
+  taxMinor      Int
+  totalMinor    Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  lines         OrderLine[]
+  fulfillments  Fulfillment[]
+  invoices      Invoice[]
+  subscriptions Subscription[]
+
+  @@index([customerId])
+  @@index([status])
+  @@map("orders")
+}
+
+/// A frozen copy of the quote lines at confirmation. Never joined back to the
+/// quotation, because a quote can change after its order exists.
+model OrderLine {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String
+  description    String
+  qty            Int
+  unitPriceMinor Int
+  discountBps    Int
+  lineTotalMinor Int
+  costMinor      Int
+  lineType       LineType
+
+  @@index([orderId])
+  @@map("order_lines")
+}

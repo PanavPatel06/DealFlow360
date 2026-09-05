@@ -1,0 +1,127 @@
+// B2 owned. Cross-domain references are stored as plain ids, never as relation
+// fields, because the owning side declares the relation (integration rule 6).
+
+model DiscountPolicy {
+  id                      String   @id @default(cuid())
+  tierId                  String
+  categoryId              String? // null means the tier default
+  maxDiscountBps          Int
+  requiresManagerAboveBps Int
+  requiresFinanceAboveBps Int
+  /// margin floor for the tier, read by the risk score and the low-margin health rule
+  targetMarginBps         Int      @default(1500)
+  /// a quote untouched for this many days is stalled
+  stalledAfterDays        Int      @default(7)
+  isActive                Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([tierId, categoryId])
+  @@map("discount_policies")
+}
+
+/// Append only. The negotiation flow reads the history, so a row is never updated.
+model RiskEvaluation {
+  id                  String       @id @default(cuid())
+  quotationId         String
+  riskScore           Int
+  riskLevel           RiskLevel
+  approvalRequired    Boolean
+  requiredApprovals   ApprovalRole[]
+  weightedExcessBps   Int
+  worstLineExcessBps  Int
+  weightedDiscountBps Int
+  marginBps           Int
+  violations          Json
+  createdAt           DateTime     @default(now())
+
+  @@index([quotationId, createdAt])
+  @@map("risk_evaluations")
+}
+
+model ApprovalRequest {
+  id           String         @id @default(cuid())
+  quotationId  String
+  evaluationId String
+  status       ApprovalStatus @default(PENDING)
+  currentStep  ApprovalRole?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  steps        ApprovalStep[]
+
+  @@index([quotationId])
+  @@index([status])
+  @@map("approval_requests")
+}
+
+model ApprovalStep {
+  id         String           @id @default(cuid())
+  requestId  String
+  request    ApprovalRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  role       ApprovalRole
+  sequence   Int
+  status     ApprovalStatus   @default(PENDING)
+  decidedAt  DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  actions    ApprovalAction[]
+
+  @@unique([requestId, sequence])
+  @@map("approval_steps")
+}
+
+model ApprovalAction {
+  id        String         @id @default(cuid())
+  stepId    String
+  step      ApprovalStep   @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  actorId   String
+  decision  ApprovalStatus
+  reason    String?
+  createdAt DateTime       @default(now())
+
+  @@map("approval_actions")
+}
+
+/// Append only. Written in the same transaction as the change it describes.
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  action     String
+  actorId    String?
+  fromValue  String?
+  toValue    String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+  @@map("audit_logs")
+}
+
+model InventoryReservation {
+  id          String            @id @default(cuid())
+  orderId     String
+  productId   String
+  warehouseId String
+  qty         Int
+  status      ReservationStatus @default(RESERVED)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([orderId])
+  @@index([warehouseId, productId])
+  @@map("inventory_reservations")
+}
+
+model DealHealthEvent {
+  id          String         @id @default(cuid())
+  quotationId String
+  type        DealHealthType
+  severity    RiskLevel
+  detail      String
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([quotationId, type])
+  @@map("deal_health_events")
+}

@@ -38,3 +38,11 @@ export type DealHealthType = (typeof DealHealthType)[keyof typeof DealHealthType
 
 export const LineType = { ONE_TIME: 'ONE_TIME', RECURRING: 'RECURRING' } as const;
 export type LineType = (typeof LineType)[keyof typeof LineType];
+
+export const OrderStatus = {
+  CONFIRMED: 'CONFIRMED',
+  FULFILLING: 'FULFILLING',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+} as const;
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
