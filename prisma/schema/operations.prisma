@@ -1,0 +1,257 @@
+// B3, commercial operations. Catalog, pricing, tax, warehouses, stock, shipping
+// and the customer negotiation mailbox. B3's enums live here rather than in
+// base.prisma, because base.prisma is group owned and nothing outside B3 reads
+// these values yet.
+
+enum FulfillmentStatus {
+  ORDER_CONFIRMED
+  INVENTORY_RESERVED
+  PICKING
+  PACKED
+  SHIPPED
+  DELIVERED
+  BACKORDERED
+}
+
+enum MovementKind {
+  RECEIPT
+  RESERVE
+  RELEASE
+  ALLOCATE
+  SHIP
+  ADJUSTMENT
+}
+
+enum RelationshipKind {
+  UPSELL
+  CROSS_SELL
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  // Services carry a stricter ceiling than hardware. B2 reads this through
+  // discount_policies.categoryId, never from here.
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+  taxRules  TaxRule[]
+
+  @@map("categories")
+}
+
+model Product {
+  id             String                @id @default(cuid())
+  sku            String                @unique
+  name           String
+  categoryId     String
+  category       Category              @relation(fields: [categoryId], references: [id])
+  listPriceMinor Int
+  costMinor      Int
+  currency       String                @db.Char(3)
+  lineType       LineType              @default(ONE_TIME)
+  // Recurring products bill on this cadence. Null for ONE_TIME.
+  billingIntervalMonths Int?
+  isActive       Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  variants       ProductVariant[]
+  priceListItems PriceListItem[]
+  inventory      Inventory[]
+  movements      InventoryMovement[]
+  relatedFrom    ProductRelationship[] @relation("from")
+  relatedTo      ProductRelationship[] @relation("to")
+  lines          QuotationLine[]
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id              String   @id @default(cuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku             String   @unique
+  name            String
+  priceDeltaMinor Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("product_variants")
+}
+
+model PriceList {
+  id        String          @id @default(cuid())
+  name      String
+  currency  String          @db.Char(3)
+  // Null means the list applies to every tier, so it is the fallback list.
+  tierId    String?
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  items     PriceListItem[]
+
+  @@map("price_lists")
+}
+
+model PriceListItem {
+  id             String    @id @default(cuid())
+  priceListId    String
+  priceList      PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product   @relation(fields: [productId], references: [id])
+  // Quantity break: this row applies from minQty upward. minQty 1 is the base row.
+  minQty         Int       @default(1)
+  unitPriceMinor Int
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([priceListId, productId, minQty])
+  @@map("price_list_items")
+}
+
+model TaxRule {
+  id         String    @id @default(cuid())
+  name       String
+  // Null category means the default rule for the jurisdiction.
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  country    String    @db.Char(2)
+  rateBps    Int
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("tax_rules")
+}
+
+model Warehouse {
+  id                   String              @id @default(cuid())
+  code                 String              @unique
+  name                 String
+  country              String              @db.Char(2)
+  shippingBaseMinor    Int
+  shippingPerUnitMinor Int
+  currency             String              @db.Char(3)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  inventory            Inventory[]
+  movements            InventoryMovement[]
+  fulfillments         Fulfillment[]
+
+  @@map("warehouses")
+}
+
+model Inventory {
+  id          String    @id @default(cuid())
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  // available is derived (onHand - reserved) and is never stored. plan.md section 6.
+  onHand      Int       @default(0)
+  reserved    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([warehouseId, productId])
+  @@map("inventory")
+}
+
+// Append only. Stock is never decremented directly, it moves through rows here.
+model InventoryMovement {
+  id          String       @id @default(cuid())
+  warehouseId String
+  warehouse   Warehouse    @relation(fields: [warehouseId], references: [id])
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id])
+  kind        MovementKind
+  qty         Int
+  // The order, fulfillment or reservation this movement answers to.
+  refType     String?
+  refId       String?
+  createdAt   DateTime     @default(now())
+
+  @@index([warehouseId, productId])
+  @@map("inventory_movements")
+}
+
+model ProductRelationship {
+  id               String           @id @default(cuid())
+  productId        String
+  product          Product          @relation("from", fields: [productId], references: [id], onDelete: Cascade)
+  relatedProductId String
+  relatedProduct   Product          @relation("to", fields: [relatedProductId], references: [id])
+  kind             RelationshipKind
+  // Seeded affinity. B2 ranks with it, B3 only stores it.
+  weight           Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([productId, relatedProductId, kind])
+  @@map("product_relationships")
+}
+
+// One shipment out of one warehouse. An order that splits gets several rows.
+model Fulfillment {
+  id            String            @id @default(cuid())
+  code          String            @unique
+  orderId       String
+  order         Order             @relation(fields: [orderId], references: [id])
+  warehouseId   String
+  warehouse     Warehouse         @relation(fields: [warehouseId], references: [id])
+  status        FulfillmentStatus @default(ORDER_CONFIRMED)
+  shippingMinor Int               @default(0)
+  currency      String            @db.Char(3)
+  trackingRef   String?
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  lines         FulfillmentLine[]
+
+  @@index([orderId])
+  @@map("fulfillments")
+}
+
+model FulfillmentLine {
+  id            String      @id @default(cuid())
+  fulfillmentId String
+  fulfillment   Fulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
+  productId     String
+  qty           Int
+
+  @@map("fulfillment_lines")
+}
+
+// The customer's "argue about the price" mailbox, one thread per quotation.
+model Negotiation {
+  id          String               @id @default(cuid())
+  quotationId String               @unique
+  quotation   Quotation            @relation(fields: [quotationId], references: [id])
+  isOpen      Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  messages    NegotiationMessage[]
+
+  @@map("negotiations")
+}
+
+model NegotiationMessage {
+  id                    String      @id @default(cuid())
+  negotiationId         String
+  negotiation           Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  // CUSTOMER or SALES. A customer message never carries internal fields.
+  author                String
+  authorUserId          String?
+  body                  String
+  quotationLineId       String?
+  requestedDiscountBps  Int?
+  requestedDeliveryDate DateTime?
+  // Set once the salesperson applies or declines the request.
+  resolution            String?
+  createdAt             DateTime    @default(now())
+
+  @@index([negotiationId])
+  @@map("negotiation_messages")
+}

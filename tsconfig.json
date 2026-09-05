@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "composite": false, "noEmit": true },
+  "include": ["apps/api/src/**/*", "packages/contracts/src/**/*", "prisma/seed/**/*"]
+}

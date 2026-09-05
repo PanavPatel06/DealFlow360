@@ -1,0 +1,129 @@
+// B3, billing. One order produces a one-time invoice and, if it has recurring
+// lines, a subscription with its own schedule. Payments are recorded, never
+// settled: plan.md section 12 says say so in the demo rather than implying it.
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  VOID
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum BillingScheduleStatus {
+  SCHEDULED
+  INVOICED
+  SKIPPED
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CARD
+  UPI
+  CHEQUE
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  code            String             @unique
+  orderId         String
+  order           Order              @relation(fields: [orderId], references: [id])
+  customerId      String
+  status          SubscriptionStatus @default(ACTIVE)
+  intervalMonths  Int
+  // What one cycle bills, net of the line discount agreed on the quote.
+  cycleAmountMinor Int
+  currency        String             @db.Char(3)
+  startDate       DateTime
+  // Set when cancelled. No proration, plan.md section 12.
+  cancelledAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  schedules       BillingSchedule[]
+  invoices        Invoice[]
+
+  @@index([customerId])
+  @@map("subscriptions")
+}
+
+model BillingSchedule {
+  id             String                @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription          @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  cycleNumber    Int
+  dueDate        DateTime
+  amountMinor    Int
+  currency       String                @db.Char(3)
+  status         BillingScheduleStatus @default(SCHEDULED)
+  invoiceId      String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@unique([subscriptionId, cycleNumber])
+  @@map("billing_schedules")
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  code           String        @unique
+  orderId        String
+  order          Order         @relation(fields: [orderId], references: [id])
+  customerId     String
+  // Set only on a recurring-cycle invoice.
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  status         InvoiceStatus @default(DRAFT)
+  currency       String        @db.Char(3)
+  subtotalMinor  Int           @default(0)
+  discountMinor  Int           @default(0)
+  taxMinor       Int           @default(0)
+  totalMinor     Int           @default(0)
+  paidMinor      Int           @default(0)
+  issuedAt       DateTime?
+  dueDate        DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  lines          InvoiceLine[]
+  payments       Payment[]
+
+  @@index([customerId, status])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id             String   @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId      String
+  description    String
+  qty            Int
+  unitPriceMinor Int
+  discountBps    Int      @default(0)
+  taxBps         Int      @default(0)
+  lineTotalMinor Int
+  lineType       LineType @default(ONE_TIME)
+
+  @@map("invoice_lines")
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id])
+  amountMinor Int
+  currency    String        @db.Char(3)
+  method      PaymentMethod
+  reference   String?
+  receivedAt  DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+
+  @@index([invoiceId])
+  @@map("payments")
+}

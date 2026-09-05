@@ -1,0 +1,64 @@
+// Group owned. Datasource, generator and the shared enums mirrored from
+// packages/contracts/src/enums.ts. Adding a value here is a four-person decision.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum QuoteStatus {
+  DRAFT
+  SUBMITTED
+  AUTO_APPROVED
+  PENDING_MANAGER
+  PENDING_FINANCE
+  APPROVED
+  REJECTED
+  RETURNED
+  CONFIRMED
+  NEGOTIATING
+  FULFILLING
+  COMPLETED
+}
+
+enum ApprovalRole {
+  SALES_MANAGER
+  FINANCE
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum DealHealthType {
+  STALLED
+  DISCOUNT_ANOMALY
+  DELIVERY_SLIPPAGE
+  LOW_MARGIN
+}
+
+enum LineType {
+  ONE_TIME
+  RECURRING
+}
+
+enum ReservationStatus {
+  RESERVED
+  ALLOCATED
+  SHIPPED
+  RELEASED
+}
