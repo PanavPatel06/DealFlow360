@@ -14,6 +14,6 @@ async function bootstrap() {
   app.useGlobalFilters(new ErrorFilter());
   app.useGlobalInterceptors(new SuccessInterceptor());
   app.useGlobalGuards(new JwtAuthGuard(app.get(Reflector)));
-  await app.listen(process.env.PORT ?? 3001);
+  await app.listen(process.env.PORT ?? 3101);
 }
 bootstrap();

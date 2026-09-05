@@ -39,12 +39,14 @@ export type QuoteView = {
   totals: QuoteTotals;
   marginBps: number;
   validUntil: string | null;
+  /** the customer's link. Internal screens only: PortalQuoteView omits it. */
+  portalToken: string | null;
   evaluation: { riskScore: number; riskLevel: string; approvalRequired: boolean } | null;
   approval: { status: string; currentStep: string | null } | null;
 };
 
 /** What the customer portal is allowed to see. No score, no margin, no cost. */
-export type PortalQuoteView = Omit<QuoteView, 'evaluation' | 'approval' | 'marginBps'> & {
+export type PortalQuoteView = Omit<QuoteView, 'evaluation' | 'approval' | 'marginBps' | 'portalToken'> & {
   approvalPending: boolean;
 };
 

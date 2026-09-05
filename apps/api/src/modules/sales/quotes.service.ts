@@ -71,6 +71,7 @@ export class QuotesService {
       },
       marginBps: quote.marginBps,
       validUntil: quote.validUntil?.toISOString() ?? null,
+      portalToken: quote.portalToken,
       evaluation: evaluation
         ? {
             riskScore: evaluation.riskScore,
@@ -334,7 +335,7 @@ export class QuotesService {
   async portalGet(token: string, user?: RequestUser): Promise<PortalQuoteView> {
     const quote = await this.loadByToken(token);
     if (user) assertOwnCustomer(user, quote.customerId);
-    const { evaluation, approval, marginBps, ...safe } = this.view(quote, null);
+    const { evaluation, approval, marginBps, portalToken, ...safe } = this.view(quote, null);
     return {
       ...safe,
       lines: safe.lines.map(({ allowedDiscountBps, overBps, ...l }) => ({

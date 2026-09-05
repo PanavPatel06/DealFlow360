@@ -71,8 +71,8 @@ export class DealHealthController {
   constructor(private readonly health: DealHealthService) {}
 
   @Get()
-  list() {
-    return { items: this.health.list() };
+  async list() {
+    return { items: await this.health.list() };
   }
 
   @Post('scan')
@@ -81,8 +81,8 @@ export class DealHealthController {
   }
 
   @Get(':quotationId')
-  forQuote(@Param('quotationId') quotationId: string) {
-    return { items: this.health.list(quotationId) };
+  async forQuote(@Param('quotationId') quotationId: string) {
+    return { items: await this.health.list(quotationId) };
   }
 
   @Post(':id/nudge')
@@ -110,8 +110,8 @@ export class PolicyController {
   constructor(private readonly policies: PolicyService) {}
 
   @Get()
-  list() {
-    return { items: this.policies.list() };
+  async list() {
+    return { items: await this.policies.list() };
   }
 
   @Put(':id')
