@@ -1,14 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-IN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f4f2f0" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content="DealFlow360 — quote to cash with the governance inside the lifecycle." />
     <title>DealFlow360</title>
+
+    <!-- design.md §3: one family, one weight. TWK Lausanne is licensed, so Inter
+         stands in as the substitute the spec allows. 400 only — nothing in this
+         app is bold, because nothing in the design system is. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <!-- §10 defect 7: Ramp has no skip link and a keyboard user traverses the
+         whole nav on every load. One link and an id fix it, so here they are. -->
+    <a class="skip" href="#main">Skip to content</a>
     <div id="app"></div>
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

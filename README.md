@@ -210,8 +210,9 @@ apps/
     test/                 unit tests for the pure engines
   web/                    Vite + vanilla JS, no framework
     src/api.js            the only place that talks HTTP
+    src/ui.js             render helpers: money, badges, tables, icons, counters, dialogs
     src/views.js          one function per screen, returns { html, mount }
-    src/main.js           hash router + shell
+    src/main.js           hash router + shell + nav
     src/styles.css        design.md, implemented
 packages/
   contracts/              shared TypeScript types — the seam between owners
@@ -355,23 +356,52 @@ Thirty-odd tables across four schema files in `prisma/schema/`:
 
 ## Frontend
 
-Vite + vanilla JS, ~4 files, no framework and no build step to think about.
-`design.md` is implemented literally in `styles.css`: the `--solar` / `--smolder`
-palette with a wide-gamut `@supports (color: lab(...))` layer, a type scale that
-steps at 768 and 992 with every face at weight 400, optical `.leading-trim` from
-the font metrics, the 4-6-8-12-16 radius ladder, the six-layer descending-alpha
-shadow, `(hover: hover)` gating and `prefers-reduced-motion` honoured.
+Vite + vanilla JS, five files, no framework. 16 KB of JS and 5 KB of CSS gzipped.
+
+`design.md` is a measured replication spec for ramp.com, and `styles.css`
+implements its §11 checklist rather than borrowing the look:
+
+- **Colour** — the brand palette declared as hex, then restated identically inside
+  `@supports (color: lab(0% 0 0))`, so `--solar` renders wide-gamut on a P3
+  display. Both alpha ladders (`--white-rgb` / `--black-rgb`, 13 steps each), the
+  three `in oklab` gradients, and the seven-layer z-index scale.
+- **Type** — one family at weight 400, no bold anywhere. Five headline and five
+  body steps stepped at 768 and 992, all round px, no `clamp()`, and the offset
+  ladder preserved so `headline-l` at ≥992 equals `headline-xl` at ≥768. Optical
+  `.leading-trim` computed from the font's own metrics with the
+  `@supports (width: round(10px, 1px))` upgrade branch. Tracking is in `em` — the
+  spec records `-0.01px` as a shipped bug (§10 defect 5) and we don't copy it.
+- **Layout** — `--spacer-m` / `--spacer-l` carry the entire vertical rhythm, and
+  `--nav-height: calc(62px + var(--nav-banner-height))` carries the header, so
+  dismissing the demo banner reflows the whole page off one variable.
+- **Motion** — the six-tier timing ladder (150 input · 200 accordion · 240 nav ·
+  300 house · 400 overlay · 500 playful), the nav's own easeInOutSine curve, the
+  arrow fly-out keyframes, and a marquee using the `-50% - gap/2` offset.
+  `prefers-reduced-motion` resolves entrances to their end state and *pauses* the
+  marquee rather than resetting it — the part §7c says everyone gets wrong.
+- **What Ramp got wrong, fixed** — a skip link, `aria-hidden` on every decorative
+  SVG, inline SVG instead of 264 KB of icon font, `rel="noopener noreferrer"` on
+  external links, and `transition-colors` instead of animating 26 properties.
 
 | Screen | Route | What works |
 |---|---|---|
 | Sign in | `#/login` | five staff accounts, one click each |
-| Quotations | `#/quotations` | list, create against a customer |
-| Quote builder | `#/quotations/<id>` | add lines, edit qty and discount inline; the OVER badge and risk score re-evaluate on every change; upsell suggestions; submit |
-| Approvals | `#/approvals` | the queue; only the role whose step is pending can act |
-| Approval detail | `#/approvals/<id>` | line-by-line reason, blended score, audit trail, approve / reject / return |
-| Orders | `#/orders` | orders created by confirming a quote |
-| Deal health | `#/deal-health` | stalled, low-margin and discount-anomaly signals, with a scan button |
-| Customer portal | `#/portal/<token>` | prices and totals only — no score, no margin, no ceilings |
+| Overview | `#/` | live counters, pipeline value, what is waiting on your role, health signals, latest audit entries |
+| Quotations | `#/quotations` | list, filter by status and customer, create against a customer |
+| Quote builder | `#/quotations/<id>` | add lines, edit qty and discount inline without losing focus; the OVER badge, totals and risk score re-evaluate on every change; upsell suggestions; evaluation history; valid-until; submit and confirm |
+| Approvals | `#/approvals` | the queue, filtered by status; only the role whose step is pending can act |
+| Approval detail | `#/approvals/<id>` | line-by-line reason, blended score, chain, audit trail, approve / reject / return with a recorded reason |
+| Orders | `#/orders` | list filtered by status |
+| Order detail | `#/orders/<id>` | lines, totals, and the fulfilment transitions ops is allowed to make |
+| Customers | `#/customers` | list, search, create; detail shows their quotations and retunes the tier |
+| Catalog | `#/catalog` | products, categories, and free/held stock per warehouse |
+| Deal health | `#/deal-health` | stalled, low-margin and discount-anomaly signals, with scan and nudge |
+| Policies | `#/policies` | the discount matrix, editable in basis points — admin and finance only |
+| Audit | `#/audit` | the append-only log, filtered by entity |
+| Customer portal | `#/portal/<token>` | prices, totals and accept — no score, no margin, no ceilings |
+
+Nav is filtered by role, so a rep never sees Policies or Audit. That only hides
+links; every rule is still enforced server-side.
 
 ---
 

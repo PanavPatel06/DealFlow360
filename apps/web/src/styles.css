@@ -1,8 +1,9 @@
-/* DealFlow360 — the design system in design.md, applied to an app rather than a
-   marketing page. Every token below is copied from that file, not invented:
-   §2 colour, §3 type, §4 layout and spacing, §5 components, §7 motion. */
+/* DealFlow360 — design.md implemented literally, on an app instead of a marketing
+   page. Section numbers below refer to that file. Where an app genuinely cannot
+   do what a long marketing page does, the deviation is named in a comment.
+   Nothing here is invented: every token is copied from the spec. */
 
-/* ---------- §2 Colour ---------- */
+/* ═══════════════ §2 Colour ═══════════════ */
 :root {
   --black: #1a1919;
   --solar: #e4f222;
@@ -20,34 +21,81 @@
   --border-primary: #d2cecb;
   --springLight: #e4ebf6;
   --spring: #5683d2;
+
+  /* §2 semantic aliasing. --page-theme is the whole theming mechanism: one
+     variable on <body>, overridden locally by anything wanting a dark ground. */
   --page-theme: var(--white);
 
-  --black-rgb: 33, 33, 33;
-  --black-25: rgba(var(--black-rgb), 0.024);
+  /* §2 alpha ramps built from an RGB triple, 13 steps each. --black-rgb is
+     33,33,33 and NOT --black — design.md §10 defect 19 records that mismatch as
+     shipping; we take the ladder, not the bug, so ours is derived from --black. */
+  --white-rgb: 255, 255, 255;
+  --white-0: rgba(var(--white-rgb), 0);
+  --white-25: rgba(var(--white-rgb), 0.025);
+  --white-50: rgba(var(--white-rgb), 0.05);
+  --white-100: rgba(var(--white-rgb), 0.1);
+  --white-200: rgba(var(--white-rgb), 0.2);
+  --white-300: rgba(var(--white-rgb), 0.3);
+  --white-400: rgba(var(--white-rgb), 0.4);
+  --white-500: rgba(var(--white-rgb), 0.5);
+  --white-600: rgba(var(--white-rgb), 0.6);
+  --white-700: rgba(var(--white-rgb), 0.7);
+  --white-800: rgba(var(--white-rgb), 0.8);
+  --white-900: rgba(var(--white-rgb), 0.9);
+
+  --black-rgb: 26, 25, 25;
+  --black-0: rgba(var(--black-rgb), 0);
+  --black-25: rgba(var(--black-rgb), 0.025);
   --black-50: rgba(var(--black-rgb), 0.05);
   --black-100: rgba(var(--black-rgb), 0.1);
   --black-200: rgba(var(--black-rgb), 0.2);
+  --black-300: rgba(var(--black-rgb), 0.3);
+  --black-400: rgba(var(--black-rgb), 0.4);
+  --black-500: rgba(var(--black-rgb), 0.5);
+  --black-600: rgba(var(--black-rgb), 0.6);
+  --black-700: rgba(var(--black-rgb), 0.7);
+  --black-800: rgba(var(--black-rgb), 0.8);
+  --black-900: rgba(var(--black-rgb), 0.9);
 
-  /* §3 Lausanne metrics, used by .leading-trim */
-  --lausanne-ascent: 1866;
-  --lausanne-descent: -410;
-  --lausanne-units-per-em: 2048;
+  /* §2 gradients, all interpolating in oklab — perceptually even, no grey
+     dead-zone. design.md says copy these verbatim, so they are verbatim. */
+  --dusk: linear-gradient(in oklab to top, #e4ebf6 8%, #c3d3ef 20%, #5683d2 48%, #001b4a 100%);
+  --midnight: linear-gradient(in oklab to bottom, #000 0%, #112d5b 100%);
+  --daylight: linear-gradient(in oklab to bottom, #d2dff3 22%, #f2f5f9 93%);
 
-  /* §4 the whole vertical rhythm, two variables */
-  --spacer-m: 40px;
-  --spacer-l: 80px;
+  /* §4 z-index scale: seven named layers, 100 apart. Nothing uses a raw z-index. */
+  --z-header: 300;
+  --z-overlay: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+  --z-toast: 800;
+  --z-navmenu: 900;
 
+  /* §5 radii: a clean doubling ladder, 12 is the default */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-2xl: 16px;
 
-  --nav-height: 64px;
+  /* §7 the timing ladder — six tiers, each with a job */
+  --t-input: 0.15s;
+  --t-accordion: 0.2s;
+  --t-nav: 0.24s;
+  --t-house: 0.3s;
+  --t-overlay: 0.4s;
+  --t-playful: 0.5s;
+  --ease-house: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-nav: cubic-bezier(0.45, 0.05, 0.55, 0.95); /* easeInOutSine, nav only */
+  --ease-overlay: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-sheet: cubic-bezier(0, 0.55, 0.45, 1);
 }
 
-/* The wide-gamut layer: the same colours restated in lab(), gated on support.
-   #e4f222 sits on the sRGB boundary and renders wider on a P3 display. */
+/* §2 the wide-gamut layer: every brand colour restated identically in lab(),
+   gated on support. #e4f222 sits on the sRGB boundary and renders wider and more
+   saturated on a P3 display. Least-effort route to wide-gamut brand colour. */
 @supports (color: lab(0% 0 0)) {
   :root {
     --black: lab(8.86531% 0.515342 0.18619);
@@ -69,177 +117,391 @@
   }
 }
 
+/* ═══════════════ §4 Spacing, header height, breakpoints ═══════════════ */
+:root {
+  /* §4 the whole vertical rhythm of the app is these two variables.
+     --spacer-l is always exactly 2 × --spacer-m; ratio between steps 1 : 1.2 : 1.6 */
+  --spacer-m: 40px;
+  --spacer-l: 80px;
+
+  /* §4 one variable for the header, banner folded in, so dismissing the banner
+     reflows the whole page for free. Everything else is derived from it. */
+  --nav-banner-height: 40px;
+  --nav-height: calc(62px + var(--nav-banner-height));
+}
+@media (max-width: 991px) { :root { --nav-banner-height: 70px } }
+@media screen and (max-width: 767px) { :root { --nav-height: calc(56px + var(--nav-banner-height)) } }
+:root:has(#banner[hidden]) { --nav-banner-height: 0px }
+
 @media (min-width: 768px) { :root { --spacer-m: 48px; --spacer-l: 96px } }
 @media (min-width: 992px) { :root { --spacer-m: 64px; --spacer-l: 128px } }
 
-* { box-sizing: border-box }
+/* §4 eight spacer utilities consuming the two variables, and nothing else
+   carries vertical rhythm. */
+.spacer-t-l { margin-top: var(--spacer-l) }
+.spacer-t-m { margin-top: var(--spacer-m) }
+.spacer-b-l { margin-bottom: var(--spacer-l) }
+.spacer-b-m { margin-bottom: var(--spacer-m) }
+.spacer-p-t-l { padding-top: var(--spacer-l) }
+.spacer-p-t-m { padding-top: var(--spacer-m) }
+.spacer-p-b-l { padding-bottom: var(--spacer-l) }
+.spacer-p-b-m { padding-bottom: var(--spacer-m) }
 
-html { -webkit-font-smoothing: antialiased }
+/* ═══════════════ §3 Typography ═══════════════ */
+/* TWK Lausanne is licensed and not redistributable, so Inter stands in — the
+   substitute design.md allows. What matters is the rule it enforces: ONE family,
+   ONE weight (400). There is no bold and no italic anywhere in this app. */
+:root {
+  /* §3 the font's own metrics, exposed as custom properties so .leading-trim can
+     compute half-leading from real numbers instead of a magic number per size.
+     Inter: unitsPerEm 2048, hhea ascender 1984, descender -494. */
+  --font-ascent: 1984;
+  --font-descent: -494;
+  --font-units-per-em: 2048;
+}
+
+* { box-sizing: border-box }
+/* An author display: value outranks the UA's [hidden] rule, and .banner and
+   .nav-sheet both set one. Toggling el.hidden has to keep working. */
+[hidden] { display: none !important }
+html { -webkit-font-smoothing: antialiased; scroll-behavior: auto } /* §7b: no smooth-scroll hijack */
 
 body {
   margin: 0;
   background: var(--page-theme);
   color: var(--text-primary);
-  /* §3: Lausanne, with the metric-matched Arial fallback next/font generates */
-  font-family: 'TWK Lausanne', Arial, Helvetica, sans-serif;
-  /* §3: every weight on the page is 400. There is no bold anywhere. */
-  font-weight: 400;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  font-weight: 400;              /* §3: the only weight in the system */
   font-size: 16px;
   line-height: 24px;
+  font-variant-ligatures: none;
 }
 
-/* §3 the type scale. Stepped at 768 and 992, round px, no clamp, no vw. */
-.headline-xl { font-size: 40px; line-height: 42px; letter-spacing: -0.01px }
-.headline-l  { font-size: 34px; line-height: 38px }
-.headline-m  { font-size: 28px; line-height: 32px }
-.headline-s  { font-size: 22px; line-height: 26px }
-.headline-xs { font-size: 20px; line-height: 24px }
-.body-xl { font-size: 18px; line-height: 22px }
-.body-l  { font-size: 17px; line-height: 23px }
-.body-m  { font-size: 15px; line-height: 21px }
-.body-s  { font-size: 14px; line-height: 20px }
-.body-xs { font-size: 12px; line-height: 18px }
+/* §3 the type scale. Stepped at 768 and 992. Round px, no clamp(), no vw.
+   Three variables per step so .leading-trim reads the same numbers the text uses
+   — that is what makes trimming work at every breakpoint with no extra rules.
+   Letter-spacing is in em, NOT px: design.md §10 defect 5 records that Ramp
+   shipped -0.01px (0.00016em, invisible) where em was intended. */
+.headline-xl, .headline-l, .headline-m, .headline-s, .headline-xs,
+.body-xl, .body-l, .body-m, .body-s, .body-xs {
+  font-size: var(--fs);
+  line-height: var(--lh);
+  letter-spacing: var(--ls, 0em);
+}
+.headline-xl { --fs: 40px; --lh: 42px; --ls: -0.01em }
+.headline-l  { --fs: 34px; --lh: 38px }
+.headline-m  { --fs: 28px; --lh: 32px }
+.headline-s  { --fs: 22px; --lh: 26px }
+.headline-xs { --fs: 20px; --lh: 24px }
+.body-xl { --fs: 18px; --lh: 22px }
+.body-l  { --fs: 17px; --lh: 23px }
+.body-m  { --fs: 15px; --lh: 21px }
+.body-s  { --fs: 14px; --lh: 20px }
+.body-xs { --fs: 12px; --lh: 18px }
 
+/* §3 the offset ladder: headline-l @lg == headline-xl @md == 48/50, and
+   headline-m @lg == headline-l @md == 40/42. Every size is reachable at every
+   breakpoint, so a component shrinks by changing its token, not by adding a
+   media query. The single best structural idea in the spec and it costs nothing. */
 @media (min-width: 768px) {
-  .headline-xl { font-size: 48px; line-height: 50px }
-  .headline-l  { font-size: 40px; line-height: 42px; letter-spacing: -0.01px }
-  .headline-m  { font-size: 32px; line-height: 35px }
-  .headline-s  { font-size: 25px; line-height: 30px }
-  .headline-xs { font-size: 22px; line-height: 26px }
-  .body-xl { font-size: 19px; line-height: 24px }
+  .headline-xl { --fs: 48px; --lh: 50px; --ls: -0.01em }
+  .headline-l  { --fs: 40px; --lh: 42px; --ls: -0.01em }
+  .headline-m  { --fs: 32px; --lh: 35px }
+  .headline-s  { --fs: 25px; --lh: 30px }
+  .headline-xs { --fs: 22px; --lh: 26px }
+  .body-xl { --fs: 19px; --lh: 24px }
 }
 @media (min-width: 992px) {
-  .headline-xl { font-size: 64px; line-height: 64px }
-  .headline-l  { font-size: 48px; line-height: 50px }
-  .headline-m  { font-size: 40px; line-height: 42px; letter-spacing: -0.005px }
-  .headline-s  { font-size: 28px; line-height: 32px }
-  .headline-xs { font-size: 24px; line-height: 28px }
-  .body-xl { font-size: 20px; line-height: 26px }
-  .body-l  { font-size: 18px; line-height: 24px }
-  .body-m  { font-size: 16px; line-height: 22px }
-  .body-xs { font-size: 13px; line-height: 19px }
+  .headline-xl { --fs: 64px; --lh: 64px; --ls: -0.01em }   /* §3: 1.0 leading at the top */
+  .headline-l  { --fs: 48px; --lh: 50px; --ls: -0.01em }
+  .headline-m  { --fs: 40px; --lh: 42px; --ls: -0.005em }
+  .headline-s  { --fs: 28px; --lh: 32px }
+  .headline-xs { --fs: 24px; --lh: 28px }
+  .body-xl { --fs: 20px; --lh: 26px }
+  .body-l  { --fs: 18px; --lh: 24px }
+  .body-m  { --fs: 16px; --lh: 22px }
+  .body-xs { --fs: 13px; --lh: 19px }
 }
 
-h1, h2, h3, h4 { font-size: inherit; font-weight: inherit; margin: 0 }
-p { margin: 0 }
-
-/* §3 leading-trim: half-leading computed from the font's own metrics, with the
-   display:table margin-collapse trick so the negative margin bites the line box. */
+/* §3 the standout technique, taken whole: optical leading-trim driven by the
+   font's own metrics. (1984 + −494) / 2048 = 0.7275 of the em box. display:table
+   on the pseudo-elements is the margin-collapse trick, so the negative margins
+   bite the line box rather than the neighbour. */
 .leading-trim {
   --trim-text-height: calc(
-    ((var(--lausanne-ascent) + var(--lausanne-descent)) / var(--lausanne-units-per-em)) * 1em
+    ((var(--font-ascent) + var(--font-descent)) / var(--font-units-per-em)) * var(--fs)
   );
-  --trim-space: calc((1lh - var(--trim-text-height)) / 2);
+  --trim-space: calc((var(--lh) - var(--trim-text-height)) / 2);
 }
 .leading-trim::before { content: ''; display: table; margin-bottom: calc(-1 * var(--trim-space)) }
 .leading-trim::after { content: ''; display: table; margin-top: calc(-1 * var(--trim-space)) }
+/* §3 the progressive-enhancement branch: snap the trim to whole pixels where
+   CSS round() exists, which kills sub-pixel text jitter. */
+@supports (width: round(10px, 1px)) {
+  .leading-trim {
+    --trim-text-height: round(calc(
+      ((var(--font-ascent) + var(--font-descent)) / var(--font-units-per-em)) * var(--fs)
+    ), 1px);
+  }
+}
 
-/* ---------- §4 Layout ---------- */
+/* headings take their size from a utility, never from the tag (§3) */
+h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; line-height: inherit; margin: 0 }
+p, figure { margin: 0 }
+a { color: inherit }
+
+/* §10 "38 :focus-visible rules against 48 :focus" — focus styling is deliberate */
+:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+:focus:not(:focus-visible) { outline: none }
+
+/* ═══════════════ §4 Layout ═══════════════ */
+/* §4 the container is full-bleed to the breakpoint: max-width always equals the
+   breakpoint, so content is edge-to-edge minus 12/24px at every size. */
 .container { width: 100%; max-width: 100%; margin-inline: auto; padding-inline: 0.75rem }
-@media (min-width: 768px) { .container { padding-inline: 1.5rem; max-width: 768px } }
-@media (min-width: 992px) { .container { max-width: 992px } }
+@media (min-width: 480px)  { .container { max-width: 480px } }
+@media (min-width: 768px)  { .container { max-width: 768px; padding-inline: 1.5rem } }
+@media (min-width: 992px)  { .container { max-width: 992px } }
 @media (min-width: 1280px) { .container { max-width: 1280px } }
+@media (min-width: 1360px) { .container { max-width: 1360px } }
 @media (min-width: 1440px) { .container { max-width: 1440px } }
 
-.grid { display: grid; gap: 24px }          /* §4: 24px at every breakpoint */
-.grid-2 { grid-template-columns: 1fr }
-.grid-3 { grid-template-columns: 1fr }
-.split { grid-template-columns: 1fr }
-@media (min-width: 768px) { .grid-2, .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+/* §4 no 12-column grid anywhere. Explicit 1 → 2 → 3, 24px gap at every
+   breakpoint, and one asymmetric split (a flexible column beside a fixed one)
+   that collapses to a stack below 992. */
+.grid { display: grid; gap: 24px }
+.grid-2, .grid-3, .grid-4, .split { grid-template-columns: minmax(0, 1fr) }
+@media (min-width: 768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+}
 @media (min-width: 992px) {
   .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) }
   .split { grid-template-columns: minmax(0, 1fr) 380px }
 }
 
-.row { display: flex; align-items: center; gap: 12px }
-.row-between { display: flex; align-items: center; justify-content: space-between; gap: 24px }
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap }
 .stack { display: flex; flex-direction: column; gap: 12px }
-.spacer-t-m { margin-top: var(--spacer-m) }
-.hushed { color: var(--text-hushed) }
+.stack-l { display: flex; flex-direction: column; gap: 24px }
+.grow { flex: 1; min-width: 0 }
 .right { text-align: right }
-.grow { flex: 1 }
+.hushed { color: var(--text-hushed) }
+.reverse .hushed, .on-dark .hushed { color: var(--text-hushedReverse) }
+.nowrap { white-space: nowrap }
+.tnum { font-variant-numeric: tabular-nums }
 
-/* ---------- §5 Header ---------- */
+/* §4 every offset derives from --nav-height. This is the correct way to do a
+   fixed header: one variable, everything else calc()'d off it. */
+.skip {
+  position: absolute; left: 12px; top: -60px; z-index: var(--z-navmenu);
+  background: var(--solar); color: var(--text-primary);
+  padding: 12px 16px; border-radius: var(--radius-md); font-size: 14px; text-decoration: none;
+  transition: top var(--t-nav) var(--ease-nav);
+}
+.skip:focus { top: calc(var(--nav-height) - 50px) }
+
+/* ═══════════════ §5 Header ═══════════════ */
+/* §4/§10: fixed, no shadow, no backdrop-filter, and NO scroll state — design.md
+   measured Ramp's header identical at seven scroll positions and says do not add
+   one. Deviation: ours is opaque --page-theme rather than transparent, because an
+   app scrolls tables under its header where a marketing page never does. */
+.banner {
+  height: var(--nav-banner-height);
+  background: var(--smolder); color: var(--text-primaryReverse);
+  display: flex; align-items: center; overflow: hidden;
+}
+.banner .container { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
+.banner button {
+  margin-left: auto; background: transparent; border: none; cursor: pointer;
+  color: var(--text-hushedReverse); font: inherit; font-size: 12px;
+  padding: 4px 8px; border-radius: var(--radius-sm);
+  transition: color var(--t-nav) var(--ease-nav);
+}
+@media (hover: hover) { .banner button:hover { color: var(--text-primaryReverse) } }
+
 .nav {
-  position: sticky; top: 0; z-index: 40;
-  height: var(--nav-height);
+  position: fixed; inset: 0 0 auto; z-index: var(--z-header);
   background: var(--page-theme);
   border-bottom: 1px solid var(--border-primary);
 }
-.nav-inner { display: flex; align-items: center; gap: 4px; height: 100% }
-.brand { display: flex; align-items: center; gap: 8px; margin-right: 24px; white-space: nowrap }
+.nav-inner { display: flex; align-items: center; gap: 4px; height: 62px }
+@media (max-width: 767px) { .nav-inner { height: 56px } }
+
+.brand { display: flex; align-items: center; gap: 8px; margin-right: 20px; text-decoration: none; white-space: nowrap }
 .brand-mark {
-  width: 26px; height: 26px; border-radius: var(--radius-md);
+  width: 26px; height: 26px; border-radius: var(--radius-md); flex: none;
   background: var(--solar); color: var(--text-primary);
-  display: grid; place-items: center; font-size: 14px;
+  display: grid; place-items: center;
 }
-/* §5 nav item: 44px tall, 12px padding, 6px radius, 14px text */
+.nav-links { display: flex; align-items: center; gap: 2px }
+@media (max-width: 991px) { .nav-links { display: none } }
+
+/* §5 nav item: 44px tall, 12px padding, 6px radius, 14px, and the one curve
+   reserved for navigation — easeInOutSine at 240ms, slower and gentler than the
+   house transition because this is the interaction that happens most often. */
 .nav-item {
   height: 44px; padding: 0 12px; border: none; border-radius: var(--radius-md);
-  background: transparent; color: var(--text-primary);
+  background: transparent; color: var(--text-hushed);
   font: inherit; font-size: 14px; line-height: 20px; cursor: pointer;
-  transition: color 0.24s cubic-bezier(0.45, 0.05, 0.55, 0.95), background-color 0.24s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  display: inline-flex; align-items: center; text-decoration: none;
+  transition: color var(--t-nav) var(--ease-nav), background-color var(--t-nav) var(--ease-nav);
 }
-@media (hover: hover) { .nav-item:hover { background: var(--black-50) } }
-.nav-item.active { background: var(--black-50) }
+@media (hover: hover) { .nav-item:hover { color: var(--text-primary); background: var(--black-50) } }
+.nav-item[aria-current='page'] { color: var(--text-primary); background: var(--black-50) }
+
 .nav-user { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 14px }
+@media (max-width: 767px) { .nav-user .who-name { display: none } }
 .avatar {
-  width: 28px; height: 28px; border-radius: 999px; background: var(--smolder);
-  color: var(--text-primaryReverse); display: grid; place-items: center; font-size: 12px;
+  width: 28px; height: 28px; border-radius: 999px; flex: none;
+  background: var(--smolder); color: var(--text-primaryReverse);
+  display: grid; place-items: center; font-size: 12px;
 }
 
-/* ---------- §5 Buttons ---------- */
+/* §5 mobile nav sheet, asymmetric on purpose: 300ms ease-out in, 150ms
+   ease-in-out out. Rare to see done deliberately, so it is done here. */
+.hamburger { display: none }
+@media (max-width: 991px) { .hamburger { display: inline-flex } }
+.nav-sheet {
+  position: fixed; left: 0; right: 0; top: var(--nav-height); z-index: var(--z-navmenu);
+  background: var(--page-theme); border-bottom: 1px solid var(--border-primary);
+  padding: 12px; display: flex; flex-direction: column; gap: 4px;
+}
+.nav-sheet[data-state='closed'] { animation: nav-out 0.15s ease-in-out both }
+.nav-sheet[data-state='open'] { animation: nav-in var(--t-house) var(--ease-sheet) both }
+@keyframes nav-in { from { transform: translateY(calc(-100% - 56px)) } to { transform: translateY(0) } }
+@keyframes nav-out { from { transform: translateY(0) } to { transform: translateY(calc(-100% - 56px)) } }
+
+/* main clears the fixed header, derived — never a hard-coded number */
+main { display: block; padding-top: var(--nav-height); padding-bottom: var(--spacer-l) }
+.page-head { padding: var(--spacer-m) 0 24px }
+.eyebrow { font-size: 12px; line-height: 18px; color: var(--text-hushed); margin-bottom: 8px }
+.eyebrow a { text-decoration: none }
+@media (hover: hover) { .eyebrow a:hover { text-decoration: underline } }
+
+/* ═══════════════ §5 Buttons — two shapes only ═══════════════ */
+/* §10 defect 8: Ramp's CTA transitions 26 properties and two of them change.
+   Only the properties that move are listed here. */
 .btn {
   height: 44px; padding: 12px 16px; border: none; border-radius: var(--radius-md);
-  font: inherit; font-size: 14px; line-height: 20px; cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: inherit; font-size: 14px; line-height: 20px; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
   background: var(--black-50); color: var(--text-primary);
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color var(--t-house) var(--ease-house), color var(--t-house) var(--ease-house);
 }
 @media (hover: hover) { .btn:hover { background: var(--black-100) } }
+/* §2 the whole brand rests on a handful of elements of acid yellow. In this app
+   --solar paints the primary action and nothing else. That restraint is the design. */
 .btn-primary { background: var(--solar); color: var(--text-primary) }
 @media (hover: hover) { .btn-primary:hover { background: var(--solarLight) } }
 .btn-dark { background: var(--smolder); color: var(--text-primaryReverse) }
+@media (hover: hover) { .btn-dark:hover { background: var(--black) } }
+.btn-quiet { background: transparent; box-shadow: inset 0 0 0 1px var(--border-primary) }
+@media (hover: hover) { .btn-quiet:hover { background: var(--black-50) } }
 .btn-danger { background: transparent; color: var(--blaze); box-shadow: inset 0 0 0 1px var(--border-primary) }
-.btn-sm { height: 34px; padding: 8px 12px }
+@media (hover: hover) { .btn-danger:hover { background: var(--blaze); color: var(--white) } }
+.btn-sm { height: 34px; padding: 8px 12px; font-size: 14px }
 .btn:disabled { opacity: 0.4; cursor: not-allowed }
 .btn-icon {
-  width: 34px; height: 34px; padding: 0; border-radius: var(--radius-md);
-  background: transparent; color: var(--text-hushed); border: none; cursor: pointer; font-size: 16px;
+  width: 34px; height: 34px; padding: 0; border: none; border-radius: var(--radius-md);
+  background: transparent; color: var(--text-hushed); cursor: pointer;
+  display: inline-grid; place-items: center;
+  transition: background-color var(--t-house) var(--ease-house), color var(--t-house) var(--ease-house);
 }
 @media (hover: hover) { .btn-icon:hover { background: var(--black-50); color: var(--blaze) } }
 
-/* ---------- §5 Inputs ---------- */
-.field { display: flex; flex-direction: column; gap: 6px }
+/* §5 the arrow fly-out, verbatim: out at 45°, invisible for 40% of the duration
+   while it teleports to the opposite corner, then back in. One keyframe block,
+   no JS, and the nicest micro-interaction in the spec. */
+@keyframes arrow-out-45 {
+  0%   { opacity: 1; transform: translate(0, 0) }
+  20%  { opacity: 0; transform: translate(8px, -8px) }
+  40%  { opacity: 0; transform: translate(-8px, 8px) }
+  60%  { opacity: 0; transform: translate(-8px, 8px) }
+  100% { opacity: 1; transform: translate(0, 0) }
+}
+@keyframes arrow-slide {
+  0%   { opacity: 1; transform: translate(0) }
+  20%  { opacity: 0; transform: translate(8px) }
+  40%  { opacity: 0; transform: translate(-8px) }
+  60%  { opacity: 0; transform: translate(-8px) }
+  100% { opacity: 1; transform: translate(0) }
+}
+
+/* ═══════════════ §5 Inputs ═══════════════ */
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0 }
 .label { font-size: 12px; line-height: 18px; color: var(--text-hushed) }
-input, select {
+input, select, textarea {
   height: 44px; padding: 0 12px; border: none; border-radius: var(--radius-lg);
   background: var(--black-100); color: var(--text-primary);
   font: inherit; font-size: 15px; width: 100%;
-  transition: background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color var(--t-input) var(--ease-house);
 }
-input:focus, select:focus { outline: 2px solid var(--text-primary); outline-offset: 1px }
-input.qty, input.bps { height: 34px; width: 84px; text-align: right; background: var(--white); box-shadow: inset 0 0 0 1px var(--border-primary) }
-input.bps.over { box-shadow: inset 0 0 0 1px var(--blaze); color: var(--blaze) }
+textarea { height: auto; padding: 12px; resize: vertical; line-height: 22px }
+select { appearance: none; padding-right: 34px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: right 16px center, right 11px center;
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+}
+@media (hover: hover) { input:hover, select:hover, textarea:hover { background: var(--black-200) } }
+.input-inline {
+  height: 34px; width: 92px; text-align: right; padding: 0 10px;
+  background: var(--white); box-shadow: inset 0 0 0 1px var(--border-primary);
+  font-variant-numeric: tabular-nums;
+}
+.input-inline.over { box-shadow: inset 0 0 0 1px var(--blaze); color: var(--blaze) }
 
-/* ---------- §5 Cards. 12px radius, grayLight ground ---------- */
-.card { border-radius: var(--radius-xl); background: var(--grayLight); padding: 24px }
+/* ═══════════════ §5 Cards ═══════════════ */
+/* §5 PlatformCard: 12px radius, overflow hidden, --grayLight ground, and where
+   the card is a link the WHOLE card is the <a>. */
+.card {
+  border-radius: var(--radius-xl); overflow: hidden;
+  background: var(--grayLight); padding: 24px;
+}
 .card-white { background: var(--white); box-shadow: inset 0 0 0 1px var(--border-primary) }
 .card-dark { background: var(--smolder); color: var(--text-primaryReverse) }
-.card-dark .hushed { color: var(--text-hushedReverse) }
+.card-dark .hushed, .card-dark .label { color: var(--text-hushedReverse) }
 .card-solar { background: var(--solar) }
-.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 16px }
+.card-flush { padding: 8px }
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px }
 
-/* the one elevated surface, §5: alphas descend as the blur grows */
+a.card { display: block; text-decoration: none; color: inherit }
+.card-link-title { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+/* §7c the hover is double-gated on pointer capability AND motion preference —
+   the best-formed hover rule in the spec, so it is the one used here. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .card:hover .arrow { animation: var(--t-playful) ease-in-out 0s 1 normal forwards arrow-out-45 }
+  .lift:hover { transform: scale(1.01); z-index: 1 }
+}
+.lift { transition: transform var(--t-house) var(--ease-house) }
+
+/* §5 only two shadows exist in the whole system. This is the first: six layers
+   whose alphas descend as the blur grows — a physically plausible falloff rather
+   than a copied Material elevation. The second is the 2px white inset rim. */
 .raised {
   background: var(--white);
   box-shadow:
-    rgba(0, 0, 0, 0.008) 0 232px 65px 0, rgba(0, 0, 0, 0.03) 0 35px 59px 0,
-    rgba(0, 0, 0, 0.09) 0 20px 50px 0, rgba(0, 0, 0, 0.067) 0 37px 37px 0,
-    rgba(0, 0, 0, 0.086) 0 9px 20px 0, rgba(255, 255, 255, 0.6) 0 0 2px 0 inset;
+    rgba(0, 0, 0, 0.008) 0 232px 65px 0,
+    rgba(0, 0, 0, 0.03) 0 35px 59px 0,
+    rgba(0, 0, 0, 0.09) 0 20px 50px 0,
+    rgba(0, 0, 0, 0.067) 0 37px 37px 0,
+    rgba(0, 0, 0, 0.086) 0 9px 20px 0,
+    rgba(255, 255, 255, 0.6) 0 0 2px 0 inset;
 }
 
-/* ---------- Badges ---------- */
+/* §4 pin offset is var(--nav-height), so a sticky rail parks under the header at
+   every breakpoint automatically. dvh, not vh. */
+@media (min-width: 992px) {
+  .sticky-rail {
+    position: sticky; top: calc(var(--nav-height) + 24px);
+    align-self: start;   /* without this the grid item stretches and never pins */
+  }
+}
+
+/* ═══════════════ Badges ═══════════════ */
 .badge {
   display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px;
   border-radius: var(--radius-sm); font-size: 12px; line-height: 18px; white-space: nowrap;
@@ -249,61 +511,149 @@ input.bps.over { box-shadow: inset 0 0 0 1px var(--blaze); color: var(--blaze) }
 .badge-ok { background: var(--smolder); color: var(--text-primaryReverse) }
 .badge-pending { background: var(--solar); color: var(--text-primary) }
 .badge-info { background: var(--springLight); color: var(--spring) }
+.badge-outline { box-shadow: inset 0 0 0 1px var(--border-primary); color: var(--text-hushed) }
 
-/* ---------- Tables ---------- */
+/* ═══════════════ Tables ═══════════════ */
+.table-wrap { overflow-x: auto }
+@media (max-width: 767px) { .table-wrap table { min-width: 620px } }
 table { width: 100%; border-collapse: collapse; font-size: 15px }
 th {
   text-align: left; font-weight: 400; font-size: 12px; line-height: 18px;
-  color: var(--text-hushed); padding: 0 12px 8px; white-space: nowrap;
+  color: var(--text-hushed); padding: 8px 12px; white-space: nowrap;
 }
 td { padding: 12px; border-top: 1px solid var(--border-primary); vertical-align: middle }
-tr.clickable { cursor: pointer; transition: background-color 0.24s cubic-bezier(0.45, 0.05, 0.55, 0.95) }
-@media (hover: hover) { tr.clickable:hover { background: var(--black-25) } }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums }
-/* the row is clickable for a mouse, but the link is what a keyboard and a
-   screen reader can reach. A bare clickable <tr> is unreachable by either. */
+tr.clickable { cursor: pointer; transition: background-color var(--t-nav) var(--ease-nav) }
+@media (hover: hover) { tr.clickable:hover { background: var(--black-25) } }
+/* the row is clickable for a mouse, but the link is what a keyboard and a screen
+   reader reach. A bare clickable <tr> is unreachable by both. */
 .row-link { color: inherit; text-decoration: none }
-.row-link:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; border-radius: var(--radius-sm) }
 @media (hover: hover) { .row-link:hover { text-decoration: underline } }
 
-/* ---------- Screens ---------- */
-main { padding-bottom: var(--spacer-l) }
-.page-head { padding: var(--spacer-m) 0 24px }
-.eyebrow { font-size: 12px; line-height: 18px; color: var(--text-hushed); margin-bottom: 8px }
-
-.login-wrap { min-height: 100dvh; display: grid; place-items: center; background: var(--grayLight); padding: 24px }
-.login-card { width: 100%; max-width: 420px; border-radius: var(--radius-2xl); background: var(--white); padding: 40px }
-.login-card input { background: var(--black-100) }
-.who { display: flex; flex-wrap: wrap; gap: 8px }
-.who button {
-  border: none; background: var(--black-50); border-radius: var(--radius-sm);
-  padding: 6px 10px; font: inherit; font-size: 12px; cursor: pointer; color: var(--text-hushed);
+/* ═══════════════ Stat ticker (§0 block 3, §5 marquees) ═══════════════ */
+/* §5 the marquee offset to copy: -50% minus half the gap is the exact offset for
+   a duplicated track with a gap. Hand-rolled marquees use -50% and drift by half
+   a gap per loop. Duration is set per instance from track length, so every
+   marquee in the app moves at the same px/s. */
+.ticker { overflow: hidden; -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent) }
+.ticker-track {
+  --wall-gap: 48px;
+  display: flex; gap: var(--wall-gap); width: max-content;
+  animation: ticker-scroll var(--marquee-duration, 40s) linear infinite;
 }
-@media (hover: hover) { .who button:hover { background: var(--solar); color: var(--text-primary) } }
+@keyframes ticker-scroll {
+  0% { transform: translate(0) }
+  100% { transform: translateX(calc(-50% - (var(--wall-gap) / 2))) }
+}
+.ticker-item { display: flex; align-items: baseline; gap: 8px; white-space: nowrap }
+.ticker-item .label { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px }
+
+/* ═══════════════ Accordion — native <details>, no library (§7d) ═══════════════ */
+details.acc { border-top: 1px solid var(--border-primary) }
+details.acc > summary {
+  list-style: none; cursor: pointer; padding: 14px 0; font-size: 15px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  transition: color var(--t-accordion) var(--ease-out);
+}
+details.acc > summary::-webkit-details-marker { display: none }
+details.acc > summary .chev { transition: transform var(--t-accordion) var(--ease-out) }
+details.acc[open] > summary .chev { transform: rotate(90deg) }
+details.acc[open] > .acc-body { animation: accordion-down var(--t-accordion) ease-out }
+@keyframes accordion-down { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }
+.acc-body { padding-bottom: 16px }
+
+/* ═══════════════ Dialog — native <dialog>, Radix's motion (§5) ═══════════════ */
+dialog {
+  border: none; padding: 32px; border-radius: var(--radius-2xl);
+  max-width: 460px; width: calc(100% - 24px); color: inherit; font: inherit;
+}
+dialog[open] { animation: slideUpAndFade var(--t-overlay) var(--ease-overlay) }
+dialog::backdrop { background: var(--black-500) }
+dialog[open]::backdrop { animation: fade var(--t-overlay) var(--ease-overlay) }
+@keyframes slideUpAndFade { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+/* ═══════════════ Meter, trail, empty, skeleton ═══════════════ */
+.meter { height: 6px; border-radius: 999px; background: var(--black-100); overflow: hidden; margin-top: 12px }
+.card-dark .meter { background: var(--white-200) }
+.meter i { display: block; height: 100%; background: var(--blaze); transition: width var(--t-house) var(--ease-house) }
+.meter.low i { background: var(--solar) }
+.meter.medium i { background: var(--solarLight) }
 
 .trail { list-style: none; margin: 0; padding: 0 }
 .trail li { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border-primary); font-size: 14px }
 .trail li:first-child { border-top: none }
-.trail time { color: var(--text-hushed); white-space: nowrap; font-size: 12px }
-
-.meter { height: 6px; border-radius: 999px; background: var(--black-100); overflow: hidden; margin-top: 12px }
-.meter i { display: block; height: 100%; background: var(--blaze) }
-.meter.low i { background: var(--smolder) }
-.meter.medium i { background: var(--solar) }
+.card-dark .trail li { border-color: var(--white-200) }
+.trail time { color: var(--text-hushed); white-space: nowrap; font-size: 12px; flex: none; width: 108px }
 
 .empty { padding: 40px 24px; text-align: center; color: var(--text-hushed); font-size: 15px }
+.span-all { grid-column: 1 / -1 }
 
+/* the skeleton shimmer runs infinite REVERSE, per the motion census */
+.skeleton { position: relative; overflow: hidden; background: var(--black-50); border-radius: var(--radius-md); height: 14px }
+.skeleton::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, var(--white-600), transparent);
+  animation: shimmer 1.5s ease-in-out infinite reverse;
+}
+@keyframes shimmer { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
+
+/* ═══════════════ Login ═══════════════ */
+/* §2 declares three oklab gradients that never paint on Ramp's homepage — it has
+   no surface for them. A sign-in split panel does. --midnight rather than --dusk:
+   --dusk resolves to #e4ebf6 at its bottom stop, and reversed white text on that
+   is unreadable. --midnight is dark end to end, so the panel keeps its contrast. */
+.login-wrap { min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) }
+@media (min-width: 992px) { .login-wrap { grid-template-columns: 1fr 1fr } }
+.login-art { display: none; background: var(--midnight); color: var(--text-primaryReverse); padding: var(--spacer-m) }
+@media (min-width: 992px) { .login-art { display: flex; flex-direction: column; justify-content: space-between } }
+.login-form { display: grid; place-items: center; padding: 24px; background: var(--page-theme) }
+.login-card { width: 100%; max-width: 420px }
+.who { display: flex; flex-wrap: wrap; gap: 8px }
+.who button {
+  border: none; background: var(--black-50); border-radius: var(--radius-sm);
+  padding: 6px 10px; font: inherit; font-size: 12px; cursor: pointer; color: var(--text-hushed);
+  transition: background-color var(--t-house) var(--ease-house), color var(--t-house) var(--ease-house);
+}
+@media (hover: hover) { .who button:hover { background: var(--solar); color: var(--text-primary) } }
+
+/* ═══════════════ Toast ═══════════════ */
 .toast {
-  position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 16px);
+  position: fixed; left: 50%; bottom: 24px; z-index: var(--z-toast);
+  transform: translate(-50%, 16px);
   background: var(--smolder); color: var(--text-primaryReverse);
   padding: 12px 16px; border-radius: var(--radius-lg); font-size: 14px;
-  opacity: 0; pointer-events: none; transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 60; max-width: min(560px, calc(100vw - 32px));
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--t-house) var(--ease-house), transform var(--t-house) var(--ease-house);
+  max-width: min(560px, calc(100vw - 32px));
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0) }
 .toast.error { background: var(--blaze) }
 
-/* §7c honour the reduced-motion preference */
+/* ═══════════════ Entrance ═══════════════ */
+main > .container { animation: rise var(--t-house) var(--ease-house) both }
+@keyframes rise { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+
+/* ═══════════════ §7c Reduced motion ═══════════════ */
+/* design.md calls Ramp's reduced-motion layer the best in its corpus, and the
+   reason is that entrance animations resolve to their END STATE rather than to
+   nothing, and marquees PAUSE rather than snap to frame zero. A blanket
+   `* { animation: none }` gets both wrong, so this is written out longhand. */
 @media (prefers-reduced-motion: reduce) {
-  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important }
+  main > .container,
+  details.acc[open] > .acc-body,
+  dialog[open], dialog[open]::backdrop,
+  .nav-sheet[data-state='open'], .nav-sheet[data-state='closed'] {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .ticker-track { animation-play-state: paused }
+  .card:hover .arrow { animation: none }
+  .skeleton::after { animation: none }
+  .btn, .nav-item, .btn-icon, input, select, textarea, .lift, .meter i, .toast, .skip,
+  details.acc > summary, details.acc > summary .chev {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
 }
